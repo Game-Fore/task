@@ -40,6 +40,7 @@ services:
       DWH_DB: ${DWH_DB:-dwh}
       ETL_START_DATE: ${ETL_START_DATE:-2023-01-01}
       ETL_END_DATE: ${ETL_END_DATE:-2027-12-31}
+      AS_OF: ${AS_OF:-2026-10-26}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
 
 volumes:

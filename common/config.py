@@ -37,6 +37,7 @@ class Settings:
     dwh_db: str
     etl_start_date: date
     etl_end_date: date
+    as_of: date
     log_level: str
 
 
@@ -52,5 +53,6 @@ def load_settings() -> Settings:
         dwh_db=_require("DWH_DB"),
         etl_start_date=_require_date("ETL_START_DATE"),
         etl_end_date=_require_date("ETL_END_DATE"),
+        as_of=_require_date("AS_OF"),
         log_level=os.environ.get("LOG_LEVEL", "INFO"),
     )

@@ -5,3 +5,4 @@ set -eu
 
 python -m etl migrate
 python -m etl load
+python -m etl mart

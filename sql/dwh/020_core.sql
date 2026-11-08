@@ -8,6 +8,9 @@ CREATE OR REPLACE FUNCTION core.etl_window_start() RETURNS date
     LANGUAGE sql STABLE AS $$ SELECT current_setting('etl.window_start')::date $$;
 CREATE OR REPLACE FUNCTION core.etl_window_end() RETURNS date
     LANGUAGE sql STABLE AS $$ SELECT current_setting('etl.window_end')::date $$;
+-- Дата снимка (as_of) для пересчёта витрин: «сейчас» задания, а не системная дата.
+CREATE OR REPLACE FUNCTION core.etl_as_of() RETURNS date
+    LANGUAGE sql STABLE AS $$ SELECT current_setting('etl.as_of')::date $$;
 
 -- Весовая категория: порог по весу, округлённому до 0.1 т. Округление на numeric
 -- (половина — от нуля), а не на float, чтобы 0.45 → 0.5 и 9.95 → 10.0 детерминированно.
