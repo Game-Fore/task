@@ -1,6 +1,3 @@
-"""Идемпотентность загрузки окна: повтор не меняет данные, узкое окно не трогает соседей,
-строка, исчезнувшая из источника, исчезает и из хранилища."""
-
 from __future__ import annotations
 
 from datetime import date
@@ -12,7 +9,7 @@ from tests.source_data import add_price
 
 OCTOBER = (date(2026, 10, 1), date(2026, 10, 31))
 
-# Таблица → технические колонки времени загрузки, которые меняются при каждом прогоне.
+# колонки времени загрузки меняются на каждом прогоне, их не сравниваем
 FINGERPRINT_TABLES = {
     "raw.prices": ["_loaded_at"],
     "raw.price_body_types": ["_loaded_at"],
@@ -28,7 +25,6 @@ FINGERPRINT_TABLES = {
 
 
 def fingerprint(dwh) -> dict[str, tuple[int, str]]:
-    """Число строк и md5 содержимого каждой таблицы (без колонок времени загрузки)."""
     result = {}
     for table, technical in FINGERPRINT_TABLES.items():
         schema, name = table.split(".")

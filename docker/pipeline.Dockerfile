@@ -7,16 +7,17 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-# Зависимости отдельным слоем: правки кода не инвалидируют кэш pip install.
 COPY requirements.txt .
 RUN pip install -r requirements.txt
 
-RUN useradd --create-home --uid 1000 app
+# пустой volume при первом монтировании берёт владельца каталога из образа
+RUN useradd --create-home --uid 1000 app && mkdir /app/models && chown app:app /app/models
 
 COPY pyproject.toml .
 COPY docker/run_pipeline.sh .
 COPY common/ common/
 COPY etl/ etl/
+COPY ml/ ml/
 COPY sql/ sql/
 COPY tests/ tests/
 

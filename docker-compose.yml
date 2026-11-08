@@ -16,8 +16,7 @@ services:
       - ./docker/postgres/initdb:/docker-entrypoint-initdb.d:ro
       - ./sql/source:/source:ro
     healthcheck:
-      # Во время initdb временный сервер слушает только unix-сокет, поэтому проверка по TCP
-      # становится зелёной лишь после окончания генерации источника.
+      # во время initdb сервер слушает только сокет, так что по TCP проверка пройдёт после генерации данных
       test: ["CMD-SHELL", "pg_isready -h localhost -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
       interval: 5s
       timeout: 5s
@@ -41,7 +40,11 @@ services:
       ETL_START_DATE: ${ETL_START_DATE:-2023-01-01}
       ETL_END_DATE: ${ETL_END_DATE:-2027-12-31}
       AS_OF: ${AS_OF:-2026-10-26}
+      ML_MODELS_DIR: /app/models
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    volumes:
+      - ml_models:/app/models
 
 volumes:
   pgdata:
+  ml_models:

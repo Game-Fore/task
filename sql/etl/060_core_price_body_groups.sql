@@ -1,13 +1,12 @@
--- Все группы кузова сделки, без дублей внутри группы.
--- Есть связи в price_body_types → группы связанных типов (56 + 61 → один 'Тент'; 56 + 15 → 'Тент' и 'Борт').
--- Связей нет → fallback на prices.body_type, при NULL — 'Не указан'. Неизвестный код типа — 'Прочие'.
+-- группы из price_body_types; если связей нет — группа prices.body_type, при NULL 'Не указан'.
+-- UNION схлопывает повторы, поэтому 56 + 61 дают один 'Тент'
 INSERT INTO core.price_body_groups (price_id, body_group)
 SELECT pbt.price_id, coalesce(bt.body_group, 'Прочие')
 FROM raw.price_body_types pbt
 JOIN core.prices p ON p.price_id = pbt.price_id
 LEFT JOIN core.dim_body_type bt ON bt.body_type_id = pbt.body_type_id
 WHERE p.loading_date BETWEEN core.etl_window_start() AND core.etl_window_end()
-UNION  -- UNION (не UNION ALL) схлопывает одинаковые группы одной цены
+UNION
 SELECT p.price_id,
        CASE WHEN p.body_type IS NULL THEN 'Не указан' ELSE coalesce(bt.body_group, 'Прочие') END
 FROM core.prices p

@@ -1,12 +1,10 @@
-"""Унификация кузовов: группы по std_id, без дублей цены внутри группы, fallback-правила."""
-
 from __future__ import annotations
 
 import pytest
 
 from tests.source_data import add_price
 
-# Группы из требований задания: код типа кузова из 1С → бизнес-группа.
+# группы из задания: код кузова из 1С → группа
 SPEC_GROUPS = {
     **{bt: "Тент" for bt in (56, 57, 58, 59, 60, 61)},
     **{bt: "Рефрижератор" for bt in (4, 46, 47, 48)},

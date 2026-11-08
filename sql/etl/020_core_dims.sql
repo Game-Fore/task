@@ -1,8 +1,4 @@
--- Справочники core: полная перезапись из raw.
-
--- gc_id в источнике не уникален: оставляем строку с минимальным cities.id.
--- Без этого JOIN сделок со справочником размножит строки.
--- Город и регион — по первой запятой full_name_local: 'Казань, Республика Татарстан'.
+-- gc_id в источнике не уникален, берём строку с минимальным id
 DELETE FROM core.dim_city;
 INSERT INTO core.dim_city (gc_id, source_city_id, city_name, region_name, full_name_local, latitude, longitude)
 SELECT DISTINCT ON (c.gc_id)
@@ -18,8 +14,6 @@ SELECT DISTINCT ON (c.gc_id)
 FROM raw.cities c
 ORDER BY c.gc_id, c.id;
 
--- Бизнес-группа кузова по стандарту std_id: Тент (56), Рефрижератор (4), Изотерм (2), Борт (15),
--- остальные стандарты — Прочие.
 DELETE FROM core.dim_body_type;
 INSERT INTO core.dim_body_type (body_type_id, name, std_id, body_group)
 SELECT b.id,

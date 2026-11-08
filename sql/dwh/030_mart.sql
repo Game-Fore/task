@@ -1,32 +1,20 @@
--- mart: карточка маршрута и рыночный коридор ставок.
---
--- route_month_stats — базовые метрики ячейки, пересчитываются ETL-шагом `etl mart`.
--- mart_route_card   — представление для BI: + MoM/YoY и уровень надёжности. Сравнения с соседними
---                     месяцами вынесены во view, чтобы пересчёт месяца M никогда не оставлял устаревшими
---                     MoM месяца M+1 и YoY месяца M+12.
-
 CREATE TABLE IF NOT EXISTS mart.route_month_stats (
-    -- зерно: месяц × город отправления × город назначения × группа кузова × весовая категория
     month               date           NOT NULL,
     loading_city_gcid   integer        NOT NULL,
     unloading_city_gcid integer        NOT NULL,
     body_group          text           NOT NULL,
     weight_category     varchar(4)     NOT NULL,
-    -- атрибуты для BI (денормализованы из core.dim_city)
     loading_city        text           NOT NULL,
     loading_region      text,
     unloading_city      text           NOT NULL,
     unloading_region    text,
-    -- рыночный коридор, руб./рейс без НДС
     p25_trip            numeric(14, 2) NOT NULL,
     median_trip         numeric(14, 2) NOT NULL,
     p75_trip            numeric(14, 2) NOT NULL,
     avg_trip            numeric(14, 2) NOT NULL,
-    -- рыночный коридор, руб./км
     p25_km              numeric(12, 2) NOT NULL,
     median_km           numeric(12, 2) NOT NULL,
     p75_km              numeric(12, 2) NOT NULL,
-    -- доказательная база
     trips_count         integer        NOT NULL,
     carriers_count      integer        NOT NULL,
     cv_rate             numeric(10, 4),
@@ -35,10 +23,10 @@ CREATE TABLE IF NOT EXISTS mart.route_month_stats (
     refreshed_at        timestamptz    NOT NULL DEFAULT now(),
     PRIMARY KEY (month, loading_city_gcid, unloading_city_gcid, body_group, weight_category)
 );
--- Сценарий «карточка одного маршрута»: история по паре городов, кузову и весу.
 CREATE INDEX IF NOT EXISTS route_month_stats_route_idx
     ON mart.route_month_stats (loading_city_gcid, unloading_city_gcid, body_group, weight_category, month);
 
+-- MoM/YoY во view, а не в таблице: иначе пересчёт месяца оставлял бы устаревшими соседние
 CREATE OR REPLACE VIEW mart.mart_route_card AS
 SELECT c.month,
        c.loading_city_gcid,
@@ -59,7 +47,6 @@ SELECT c.month,
        c.trips_count,
        c.carriers_count,
        c.cv_rate,
-       -- только календарно предыдущий месяц / тот же месяц прошлого года; нет ячейки — NULL
        round((c.median_trip / nullif(prev_month.median_trip, 0) - 1) * 100, 2) AS mom_pct,
        round((c.median_trip / nullif(prev_year.median_trip, 0) - 1) * 100, 2)  AS yoy_pct,
        CASE

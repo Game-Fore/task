@@ -1,5 +1,3 @@
-"""Построение маленького источника с краевыми случаями для тестов (схема — выданная sql/source/schema.sql)."""
-
 from __future__ import annotations
 
 from datetime import date, datetime
@@ -8,7 +6,7 @@ from typing import Any, Iterable
 import psycopg
 from psycopg import sql
 
-# Тот же справочник кузовов, что в sql/source/synthetic.sql (id = id_from_1C).
+# тот же справочник, что в synthetic.sql
 BODY_TYPES = [
     (1, "бортовая", 1, 15), (2, "изотермический", 2, 2), (3, "контейнер", 3, 3), (4, "рефрижератор", 4, 4),
     (5, "трал", 5, 5), (15, "борт", 15, 15), (26, "контейнерная площадка", 26, 3),
@@ -19,7 +17,7 @@ BODY_TYPES = [
     (68, "цистерна", 68, 68),
 ]
 
-# Дубли gc_id: Москва — то же имя, Казань — другое написание с бОльшим id.
+# дубли gc_id: у Москвы то же имя, у Казани другое написание
 CITIES = [
     (1, "Москва, г. Москва", 1001, 55.7558, 37.6173),
     (2, "Казань, Республика Татарстан", 1003, 55.7961, 49.1064),
@@ -71,7 +69,6 @@ def reset_source(conn: psycopg.Connection) -> None:
 
 def add_price(conn: psycopg.Connection, price_id: int, *, body_type_ids: Iterable[int] = (),
               price_dates: Iterable[date] | None = None, **overrides: Any) -> None:
-    """Сделка + её связи с кузовами + помесячные даты (по умолчанию одна дата = loading_date)."""
     row = {**DEFAULT_PRICE, **overrides, "id": price_id}
     row.setdefault("end_loading_date", row["loading_date"])
     conn.execute(

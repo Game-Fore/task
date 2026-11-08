@@ -1,7 +1,4 @@
--- Пересчёт mart.route_month_stats за месяцы [month(window_start), month(as_of)].
--- Почему до as_of, а не до конца окна: долгосрочная заявка из окна живёт и в более поздних месяцах
--- (price_dates идут от loading_date вперёд), а в более ранние не попадает никогда.
-
+-- пересчитываем до as_of, а не до конца окна: долгосрочная заявка живёт и в следующих месяцах
 DELETE FROM mart.route_month_stats
 WHERE month BETWEEN date_trunc('month', core.etl_window_start())::date
                 AND date_trunc('month', core.etl_as_of())::date;
@@ -13,9 +10,7 @@ INSERT INTO mart.route_month_stats (
     trips_count, carriers_count, cv_rate, last_price_date, as_of
 )
 WITH market_deals AS (
-    -- Одна строка на сделку × месяц × группу кузова: даже если у сделки окажутся две даты
-    -- в одном месяце, в перцентили она войдёт один раз. Сделка с кузовами из двух групп
-    -- учитывается в обеих группах (по требованию), но внутри группы — один раз.
+    -- одна строка на сделку × месяц × группу кузова
     SELECT p.price_id,
            d.month,
            g.body_group,
@@ -30,11 +25,11 @@ WITH market_deals AS (
     FROM core.prices p
     JOIN core.price_dates d       ON d.price_id = p.price_id
     JOIN core.price_body_groups g ON g.price_id = p.price_id
-    WHERE p.price_type IN (1, 2, 3, 4, 5, 9)          -- только факты (is_fact); ставки торгов (6) вне scope
-      AND NOT p.complex                               -- простые прямые маршруты
-      AND NOT p.outlier_mark                          -- выбросы по входному флагу источника
-      AND p.price > 0 AND p.distance > 0              -- гарантировано DQ, повторено для независимости витрины
-      AND d.price_date <= core.etl_as_of()            -- плановые даты после снимка — не история рынка
+    WHERE p.price_type IN (1, 2, 3, 4, 5, 9)
+      AND NOT p.complex
+      AND NOT p.outlier_mark
+      AND p.price > 0 AND p.distance > 0
+      AND d.price_date <= core.etl_as_of()
       AND d.month >= date_trunc('month', core.etl_window_start())
     GROUP BY p.price_id, d.month, g.body_group
 )
@@ -47,7 +42,6 @@ SELECT m.month,
        lc.region_name,
        uc.city_name,
        uc.region_name,
-       -- percentile_cont: линейная интерполяция между соседними наблюдениями (как numpy/pandas по умолчанию)
        round(percentile_cont(0.25) WITHIN GROUP (ORDER BY m.price_rub)::numeric, 2),
        round(percentile_cont(0.50) WITHIN GROUP (ORDER BY m.price_rub)::numeric, 2),
        round(percentile_cont(0.75) WITHIN GROUP (ORDER BY m.price_rub)::numeric, 2),

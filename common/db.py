@@ -1,9 +1,3 @@
-"""Подключение к PostgreSQL (psycopg 3).
-
-Соединение используется как контекстный менеджер: `with connect(...) as conn:`
-коммитит при успешном выходе, откатывает при исключении и закрывает соединение.
-"""
-
 from __future__ import annotations
 
 import psycopg

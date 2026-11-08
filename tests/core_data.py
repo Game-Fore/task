@@ -1,5 +1,3 @@
-"""Наполнение core напрямую — для тестов витрины (без прогона ETL)."""
-
 from __future__ import annotations
 
 from datetime import date
@@ -12,9 +10,9 @@ from psycopg import sql
 MOSCOW, SPB, KAZAN = 1001, 1002, 1003
 
 CITIES = [
-    (MOSCOW, 1, "Москва", "г. Москва", "Москва, г. Москва"),
-    (SPB, 2, "Санкт-Петербург", "г. Санкт-Петербург", "Санкт-Петербург, г. Санкт-Петербург"),
-    (KAZAN, 3, "Казань", "Республика Татарстан", "Казань, Республика Татарстан"),
+    (MOSCOW, 1, "Москва", "г. Москва", "Москва, г. Москва", 55.7558, 37.6173),
+    (SPB, 2, "Санкт-Петербург", "г. Санкт-Петербург", "Санкт-Петербург, г. Санкт-Петербург", 59.9343, 30.3351),
+    (KAZAN, 3, "Казань", "Республика Татарстан", "Казань, Республика Татарстан", 55.7961, 49.1064),
 ]
 
 DEFAULT_CORE_PRICE: dict[str, Any] = {
@@ -43,13 +41,12 @@ _ids = count(1)
 def seed_cities(conn: psycopg.Connection) -> None:
     with conn.cursor() as cur:
         cur.executemany(
-            "INSERT INTO core.dim_city (gc_id, source_city_id, city_name, region_name, full_name_local) "
-            "VALUES (%s, %s, %s, %s, %s)", CITIES)
+            "INSERT INTO core.dim_city (gc_id, source_city_id, city_name, region_name, full_name_local, "
+            "latitude, longitude) VALUES (%s, %s, %s, %s, %s, %s, %s)", CITIES)
 
 
 def add_deal(conn: psycopg.Connection, price_rub: float, *, dates: Iterable[date] | None = None,
              groups: Iterable[str] = ("Тент",), **overrides: Any) -> int:
-    """Сделка в core.prices + её помесячные даты + группы кузова. Возвращает price_id."""
     price_id = next(_ids)
     row = {**DEFAULT_CORE_PRICE, **overrides, "price_id": price_id, "price": price_rub, "price_rub": price_rub}
     conn.execute(

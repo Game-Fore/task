@@ -1,5 +1,3 @@
-"""Витрина карточки маршрута: коридор ставок, доказательная база, MoM/YoY, надёжность, идемпотентность."""
-
 from __future__ import annotations
 
 from datetime import date
@@ -90,7 +88,7 @@ def test_mom_and_yoy_compare_only_calendar_neighbours(core, run_mart):
     sep = cell(core, SEP_2026)
     assert (sep["mom_pct"], sep["yoy_pct"]) == (Decimal("10.00"), Decimal("10.00"))
     aug = cell(core, date(2026, 8, 1))
-    # июля 2026 и августа 2025 нет — NULL, а не сравнение с «последним доступным» месяцем
+    # июля 2026 и августа 2025 нет, поэтому NULL
     assert (aug["mom_pct"], aug["yoy_pct"]) == (None, None)
 
 

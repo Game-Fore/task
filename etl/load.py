@@ -1,14 +1,3 @@
-"""Загрузка окна дат: источник → raw → core, атомарно и идемпотентно.
-
-Всё, что меняется в хранилище, выполняется в ОДНОЙ транзакции:
-  1. advisory-lock: параллельный запуск того же шага ждёт, а не пишет одновременно;
-  2. окно задаётся через set_config(..., is_local => true) — живёт до конца транзакции;
-  3. raw: удалить окно → COPY из источника;
-  4. core: справочники целиком, затем удалить окно → staging с DQ → карантин / core.
-Повторный запуск за то же окно удаляет и заново вставляет те же строки — результат не меняется.
-При ошибке на любом шаге транзакция откатывается и хранилище остаётся в прежнем состоянии.
-"""
-
 from __future__ import annotations
 
 import logging
@@ -40,26 +29,27 @@ class LoadStats:
 
 
 def _run_sql_file(conn: psycopg.Connection, name: str) -> None:
-    # Файлы без параметров (окно читается из set_config), поэтому несколько операторов в одном execute допустимы.
     conn.execute((SQL_DIR / name).read_text(encoding="utf-8"))
 
 
-def _count_in_window(conn: psycopg.Connection, query: str) -> int:
+def _count(conn: psycopg.Connection, query: str) -> int:
     return conn.execute(query).fetchone()[0]
 
 
 def load_window(source: psycopg.Connection, dwh: psycopg.Connection, start: date, end: date) -> LoadStats:
+    """Перезаписывает окно в raw и core одной транзакцией, поэтому повторный запуск ничего не меняет."""
     if start > end:
         raise ValueError(f"start_date {start} позже end_date {end}")
     stats = LoadStats(start=start, end=end)
     log.info("load started", extra={"step": "load", "start_date": start, "end_date": end})
 
-    # Единый снимок источника для всех таблиц: дочерние строки не разойдутся с prices.
+    # один снимок источника на все таблицы, иначе price_dates могут разойтись с prices
     source.isolation_level = IsolationLevel.REPEATABLE_READ
     source.read_only = True
 
     with source.transaction(), dwh.transaction():
         dwh.execute("SELECT pg_advisory_xact_lock(hashtext('etl_load'))")
+        # окно живёт до конца транзакции, SQL-файлы читают его через core.etl_window_*()
         dwh.execute("SELECT set_config('etl.window_start', %s, true), set_config('etl.window_end', %s, true)",
                     (start.isoformat(), end.isoformat()))
 
@@ -75,16 +65,16 @@ def load_window(source: psycopg.Connection, dwh: psycopg.Connection, start: date
         _run_sql_file(dwh, "070_core_price_dates.sql")
 
         in_window = "loading_date BETWEEN core.etl_window_start() AND core.etl_window_end()"
-        stats.core_prices = _count_in_window(dwh, f"SELECT count(*) FROM core.prices WHERE {in_window}")
-        stats.quarantined = _count_in_window(dwh, f"SELECT count(*) FROM core.dq_quarantine_prices WHERE {in_window}")
+        window_prices = f"SELECT price_id FROM core.prices WHERE {in_window}"
+        stats.core_prices = _count(dwh, f"SELECT count(*) FROM core.prices WHERE {in_window}")
+        stats.quarantined = _count(dwh, f"SELECT count(*) FROM core.dq_quarantine_prices WHERE {in_window}")
         stats.quarantine_by_reason = dict(dwh.execute(
             f"SELECT reason, count(*) FROM core.dq_quarantine_prices, unnest(reasons) AS reason "
             f"WHERE {in_window} GROUP BY reason ORDER BY reason"
         ).fetchall())
-        window_prices = f"SELECT price_id FROM core.prices WHERE {in_window}"
-        stats.price_body_groups = _count_in_window(
+        stats.price_body_groups = _count(
             dwh, f"SELECT count(*) FROM core.price_body_groups WHERE price_id IN ({window_prices})")
-        stats.price_dates = _count_in_window(
+        stats.price_dates = _count(
             dwh, f"SELECT count(*) FROM core.price_dates WHERE price_id IN ({window_prices})")
 
     log.info("dq quarantine", extra={"step": "load", "rows": stats.quarantined,

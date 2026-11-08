@@ -1,7 +1,5 @@
--- Валидные сделки окна → core.prices.
--- body_group здесь — ОСНОВНАЯ группа сделки (одна на цену, для ML и прогнозов):
---   группа prices.body_type → иначе группа связи из price_body_types с минимальным std_id → 'Не указан'.
--- Все группы сделки (для витрины) — в core.price_body_groups.
+-- body_group — одна основная группа на сделку (для ML): группа prices.body_type,
+-- иначе связь с минимальным std_id, иначе 'Не указан'. Все группы сделки — в price_body_groups
 INSERT INTO core.prices (
     price_id, created_at, loading_date, end_loading_date, loading_city_gcid, unloading_city_gcid,
     distance, total_weight, total_volume, body_type, body_group, organization_id, price_type,

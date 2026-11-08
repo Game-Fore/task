@@ -1,10 +1,3 @@
-"""Extract: потоковая копия источника deals_bigdata в raw через COPY.
-
-Данные идут из `COPY (SELECT ...) TO STDOUT` источника напрямую в `COPY raw.<t> FROM STDIN`
-хранилища блоками — без pandas и промежуточных файлов, память не зависит от объёма окна.
-Справочники копируются целиком, сделки и их дочерние строки — за окно по prices.loading_date.
-"""
-
 from __future__ import annotations
 
 import logging
@@ -24,7 +17,7 @@ _CHILDREN_IN_WINDOW = "price_id IN (SELECT id FROM prices WHERE loading_date BET
 class RawTable:
     name: str
     columns: tuple[str, ...]
-    source_filter: str | None = None  # условие WHERE в источнике; None — таблица целиком
+    source_filter: str | None = None  # None — таблица целиком
 
 
 RAW_TABLES: tuple[RawTable, ...] = (
@@ -49,7 +42,6 @@ def _columns(table: RawTable) -> sql.Composable:
 
 
 def _copy_out_query(table: RawTable, start: date, end: date) -> sql.Composed:
-    # Фильтры — константы модуля, даты подставляются как экранированные литералы.
     where = sql.SQL("")
     if table.source_filter:
         where = sql.SQL(" WHERE " + table.source_filter).format(start=sql.Literal(start), end=sql.Literal(end))
@@ -65,9 +57,7 @@ def _copy_in_query(table: RawTable) -> sql.Composed:
 
 
 def copy_source_to_raw(source: psycopg.Connection, dwh: psycopg.Connection, start: date, end: date) -> dict[str, int]:
-    """Копирует таблицы источника в raw. Вызывать внутри открытых транзакций обоих соединений:
-    источник — REPEATABLE READ (единый снимок для всех таблиц), хранилище — транзакция загрузки окна.
-    Возвращает число скопированных строк по таблицам."""
+    # данные идут потоком из COPY TO STDOUT источника в COPY FROM STDIN хранилища, в память не грузятся
     copied: dict[str, int] = {}
     for table in RAW_TABLES:
         with source.cursor() as src_cur, dwh.cursor() as dst_cur:

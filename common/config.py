@@ -1,14 +1,9 @@
-"""Конфигурация из переменных окружения.
-
-Значений по умолчанию для подключения здесь нет намеренно: их задаёт docker-compose.yml
-(или .env), а код падает сразу и с понятной ошибкой, если переменная не передана.
-"""
-
 from __future__ import annotations
 
 import os
 from dataclasses import dataclass
 from datetime import date
+from pathlib import Path
 
 
 def _require(name: str) -> str:
@@ -38,6 +33,7 @@ class Settings:
     etl_start_date: date
     etl_end_date: date
     as_of: date
+    ml_models_dir: Path
     log_level: str
 
 
@@ -54,5 +50,6 @@ def load_settings() -> Settings:
         etl_start_date=_require_date("ETL_START_DATE"),
         etl_end_date=_require_date("ETL_END_DATE"),
         as_of=_require_date("AS_OF"),
+        ml_models_dir=Path(_require("ML_MODELS_DIR")),
         log_level=os.environ.get("LOG_LEVEL", "INFO"),
     )

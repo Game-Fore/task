@@ -1,3 +1,2 @@
-# Всё текстовое хранится и выгружается с LF: скрипты и SQL исполняются в Linux-контейнерах,
-# а CRLF ломает shebang и heredoc ("\r: command not found").
+# скрипты и SQL выполняются в Linux-контейнерах, CRLF там ломает shebang
 * text=auto eol=lf

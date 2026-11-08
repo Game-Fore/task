@@ -1,10 +1,3 @@
-"""Структурированное логирование: одна JSON-строка на событие в stdout.
-
-Метрики шага передаются через `extra`, например
-`log.info("loaded", extra={"step": "core_prices", "rows": 1000})`,
-и попадают в JSON отдельными полями, а не текстом сообщения.
-"""
-
 from __future__ import annotations
 
 import json
@@ -12,7 +5,7 @@ import logging
 import sys
 from datetime import datetime, timezone
 
-# Стандартные атрибуты LogRecord: всё остальное в record.__dict__ пришло из extra.
+# всё, чего нет у стандартного LogRecord, пришло через extra и пишется отдельными полями
 _STANDARD_ATTRS = set(logging.LogRecord("", 0, "", 0, "", None, None).__dict__) | {"message", "asctime"}
 
 

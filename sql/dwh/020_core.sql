@@ -1,19 +1,14 @@
--- core: очищенные и нормализованные данные.
--- Внешних ключей нет намеренно: справочники перезаписываются целиком (DELETE + INSERT),
--- а ссылочную целостность сделок обеспечивают DQ-правила (город есть в справочнике).
+-- внешних ключей нет: справочники перезаписываются целиком, целостность держат DQ-правила
 
--- Окно загрузки задаётся на транзакцию через set_config('etl.window_start', ..., true),
--- чтобы SQL-файлы трансформаций выполнялись без параметров. Если окно не задано — ошибка.
+-- параметры шага задаются set_config(..., true) на время транзакции
 CREATE OR REPLACE FUNCTION core.etl_window_start() RETURNS date
     LANGUAGE sql STABLE AS $$ SELECT current_setting('etl.window_start')::date $$;
 CREATE OR REPLACE FUNCTION core.etl_window_end() RETURNS date
     LANGUAGE sql STABLE AS $$ SELECT current_setting('etl.window_end')::date $$;
--- Дата снимка (as_of) для пересчёта витрин: «сейчас» задания, а не системная дата.
 CREATE OR REPLACE FUNCTION core.etl_as_of() RETURNS date
     LANGUAGE sql STABLE AS $$ SELECT current_setting('etl.as_of')::date $$;
 
--- Весовая категория: порог по весу, округлённому до 0.1 т. Округление на numeric
--- (половина — от нуля), а не на float, чтобы 0.45 → 0.5 и 9.95 → 10.0 детерминированно.
+-- округление на numeric, а не float: 0.45 → 0.5 и 9.95 → 10.0
 CREATE OR REPLACE FUNCTION core.f_weight_category(weight_t double precision) RETURNS varchar(4)
     LANGUAGE sql IMMUTABLE PARALLEL SAFE AS $$
     SELECT CASE
@@ -28,7 +23,6 @@ CREATE OR REPLACE FUNCTION core.f_weight_category(weight_t double precision) RET
     FROM (SELECT round(weight_t::numeric, 1)) AS t(w)
 $$;
 
--- Объёмная категория: FTL при 0 < V <= 120 м³, иначе OTH.
 CREATE OR REPLACE FUNCTION core.f_volume_category(volume_m3 double precision) RETURNS varchar(4)
     LANGUAGE sql IMMUTABLE PARALLEL SAFE AS $$
     SELECT CASE
@@ -38,7 +32,6 @@ CREATE OR REPLACE FUNCTION core.f_volume_category(volume_m3 double precision) RE
            END
 $$;
 
--- Город: одна строка на gc_id (минимальный cities.id); город и регион из full_name_local.
 CREATE TABLE IF NOT EXISTS core.dim_city (
     gc_id           integer PRIMARY KEY,
     source_city_id  bigint  NOT NULL,
@@ -49,7 +42,6 @@ CREATE TABLE IF NOT EXISTS core.dim_city (
     longitude       double precision
 );
 
--- Тип кузова из 1С → стандартная бизнес-группа по std_id.
 CREATE TABLE IF NOT EXISTS core.dim_body_type (
     body_type_id integer PRIMARY KEY,
     name         text    NOT NULL,
@@ -57,8 +49,7 @@ CREATE TABLE IF NOT EXISTS core.dim_body_type (
     body_group   text    NOT NULL
 );
 
--- Курсы ЦБ. PK не даёт задвоить сделки при JOIN, если в источнике появится дубль курса:
--- загрузка упадёт явно, а не размножит строки.
+-- PK не даст дублю курса размножить сделки при JOIN: загрузка упадёт сразу
 CREATE TABLE IF NOT EXISTS core.exchange_rates (
     currency_code varchar(3)       NOT NULL,
     rate_date     date             NOT NULL,
@@ -66,9 +57,8 @@ CREATE TABLE IF NOT EXISTS core.exchange_rates (
     PRIMARY KEY (currency_code, rate_date)
 );
 
--- Сделки, прошедшие DQ. Все price_type и complex сохраняются: scope (is_fact, complex,
--- outlier_mark) применяют витрины и ML. price_group_id из источника сюда не переносится —
--- групповые агрегаты по таргету недоступны ML по построению.
+-- все сделки, прошедшие DQ; scope (is_fact, complex, outlier_mark) применяют витрина и ML.
+-- price_group_id сюда не переносим, чтобы агрегаты по таргету не могли попасть в модель
 CREATE TABLE IF NOT EXISTS core.prices (
     price_id            bigint PRIMARY KEY,
     created_at          timestamp(0),
@@ -99,7 +89,6 @@ CREATE TABLE IF NOT EXISTS core.prices (
 );
 CREATE INDEX IF NOT EXISTS core_prices_loading_date_idx ON core.prices (loading_date);
 
--- Все группы кузова сделки: одна строка на (цена, группа).
 CREATE TABLE IF NOT EXISTS core.price_body_groups (
     price_id   bigint NOT NULL,
     body_group text   NOT NULL,
@@ -108,7 +97,6 @@ CREATE TABLE IF NOT EXISTS core.price_body_groups (
         CHECK (body_group IN ('Тент', 'Рефрижератор', 'Изотерм', 'Борт', 'Прочие', 'Не указан'))
 );
 
--- Помесячная развёртка сделки (источник зерна «месяц» витрины).
 CREATE TABLE IF NOT EXISTS core.price_dates (
     price_id   bigint NOT NULL,
     price_date date   NOT NULL,
@@ -117,7 +105,6 @@ CREATE TABLE IF NOT EXISTS core.price_dates (
 );
 CREATE INDEX IF NOT EXISTS core_price_dates_month_idx ON core.price_dates (month);
 
--- Карантин DQ: все нарушенные правила и исходная строка целиком.
 CREATE TABLE IF NOT EXISTS core.dq_quarantine_prices (
     price_id       bigint      PRIMARY KEY,
     loading_date   date        NOT NULL,

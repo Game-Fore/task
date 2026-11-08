@@ -1,5 +1,3 @@
-"""DQ-правила, карантин и конвертация валют."""
-
 from __future__ import annotations
 
 from datetime import date
@@ -33,9 +31,9 @@ def core_row(dwh, price_id: int):
         ({"unloading_city_gcid": 9999}, ["UNLOADING_CITY_UNKNOWN"]),
         ({"currency_code": "156", "price": 5000}, ["UNSUPPORTED_CURRENCY"]),
         ({"currency_code": "840", "price": 900, "nearest_rate_date": None}, ["FX_RATE_DATE_MISSING"]),
-        # курс есть только на 2026-09-12; на 13-е точного курса нет, fallback не применяется
+        # курс есть только на 12.09, на 13.09 его нет
         ({"currency_code": "978", "price": 900, "nearest_rate_date": date(2026, 9, 13)}, ["FX_RATE_NOT_FOUND"]),
-        # одна строка — все нарушенные правила сразу
+        # все нарушенные правила сразу
         ({"currency_code": "840", "price": 0, "nearest_rate_date": None}, ["PRICE_NON_POSITIVE", "FX_RATE_DATE_MISSING"]),
     ],
 )

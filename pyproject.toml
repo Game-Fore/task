@@ -1,5 +1,4 @@
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
-# кэш pytest не нужен в одноразовом контейнере (и /app недоступен для записи пользователю app)
 addopts = "-ra -p no:cacheprovider"

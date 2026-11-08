@@ -1,9 +1,3 @@
-"""Пересчёт витрины mart.route_month_stats (представление mart.mart_route_card считается на лету).
-
-Атомарная перезапись месяцев [month(start_date), month(as_of)] в одной транзакции под advisory-lock:
-повторный запуск с теми же параметрами даёт ту же витрину, месяцы до start_date не трогаются.
-"""
-
 from __future__ import annotations
 
 import logging

@@ -1,10 +1,3 @@
-"""Фикстуры: временные базы source_test / dwh_test на том же сервере PostgreSQL.
-
-source_test создаётся из выданной sql/source/schema.sql и наполняется краевыми строками в каждом тесте,
-dwh_test — нашими миграциями. Загрузка вызывается той же функцией load_window, что и в пайплайне,
-поэтому тесты сквозные: extract (COPY) → DQ → core.
-"""
-
 from __future__ import annotations
 
 from datetime import date
@@ -59,7 +52,6 @@ def test_databases(settings):
 
 @pytest.fixture
 def source(settings, test_databases):
-    """Источник со справочниками и без сделок; autocommit — данные сразу видны загрузке."""
     with psycopg.connect(**_conn_kwargs(settings, SOURCE_TEST_DB), autocommit=True) as conn:
         reset_source(conn)
         yield conn
@@ -67,7 +59,6 @@ def source(settings, test_databases):
 
 @pytest.fixture
 def dwh(settings, test_databases):
-    """Пустые raw/core/mart перед каждым тестом; autocommit — для подготовки данных и проверочных запросов."""
     with psycopg.connect(**_conn_kwargs(settings, DWH_TEST_DB), autocommit=True) as conn:
         tables = conn.execute(
             "SELECT format('%I.%I', schemaname, tablename) FROM pg_tables WHERE schemaname IN ('raw', 'core', 'mart')"

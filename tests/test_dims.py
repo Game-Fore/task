@@ -1,5 +1,3 @@
-"""Справочник городов (дедупликация gc_id) и помесячная развёртка сделок."""
-
 from __future__ import annotations
 
 from datetime import date
