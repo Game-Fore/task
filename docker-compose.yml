@@ -1,0 +1,45 @@
+name: smart-logistics
+
+services:
+  postgres:
+    image: postgres:17.6
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${SOURCE_DB:-deals_bigdata}
+      DWH_DB: ${DWH_DB:-dwh}
+      N_PRICES: ${N_PRICES:-300000}
+    ports:
+      - "${POSTGRES_HOST_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./docker/postgres/initdb:/docker-entrypoint-initdb.d:ro
+      - ./sql/source:/source:ro
+    healthcheck:
+      # Во время initdb временный сервер слушает только unix-сокет, поэтому проверка по TCP
+      # становится зелёной лишь после окончания генерации источника.
+      test: ["CMD-SHELL", "pg_isready -h localhost -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 600s
+
+  pipeline:
+    build:
+      context: .
+      dockerfile: docker/pipeline.Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: ${POSTGRES_USER:-postgres}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      SOURCE_DB: ${SOURCE_DB:-deals_bigdata}
+      DWH_DB: ${DWH_DB:-dwh}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    command: ["python", "-m", "etl", "migrate"]
+
+volumes:
+  pgdata:

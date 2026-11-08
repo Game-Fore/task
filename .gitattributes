@@ -1,0 +1,3 @@
+# Всё текстовое хранится и выгружается с LF: скрипты и SQL исполняются в Linux-контейнерах,
+# а CRLF ломает shebang и heredoc ("\r: command not found").
+* text=auto eol=lf
