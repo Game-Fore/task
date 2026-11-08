@@ -38,8 +38,9 @@ services:
       DB_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       SOURCE_DB: ${SOURCE_DB:-deals_bigdata}
       DWH_DB: ${DWH_DB:-dwh}
+      ETL_START_DATE: ${ETL_START_DATE:-2023-01-01}
+      ETL_END_DATE: ${ETL_END_DATE:-2027-12-31}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
-    command: ["python", "-m", "etl", "migrate"]
 
 volumes:
   pgdata:

@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
+from datetime import date
 
 
 def _require(name: str) -> str:
@@ -15,6 +16,10 @@ def _require(name: str) -> str:
     if not value:
         raise RuntimeError(f"Не задана переменная окружения {name}")
     return value
+
+
+def _require_date(name: str) -> date:
+    return date.fromisoformat(_require(name))
 
 
 @dataclass(frozen=True)
@@ -30,6 +35,8 @@ class Settings:
     db: DbConfig
     source_db: str
     dwh_db: str
+    etl_start_date: date
+    etl_end_date: date
     log_level: str
 
 
@@ -43,5 +50,7 @@ def load_settings() -> Settings:
         ),
         source_db=_require("SOURCE_DB"),
         dwh_db=_require("DWH_DB"),
+        etl_start_date=_require_date("ETL_START_DATE"),
+        etl_end_date=_require_date("ETL_END_DATE"),
         log_level=os.environ.get("LOG_LEVEL", "INFO"),
     )

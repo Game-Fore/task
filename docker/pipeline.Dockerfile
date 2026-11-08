@@ -13,10 +13,13 @@ RUN pip install -r requirements.txt
 
 RUN useradd --create-home --uid 1000 app
 
+COPY pyproject.toml .
+COPY docker/run_pipeline.sh .
 COPY common/ common/
 COPY etl/ etl/
 COPY sql/ sql/
+COPY tests/ tests/
 
 USER app
 
-CMD ["python", "-m", "etl", "migrate"]
+CMD ["sh", "run_pipeline.sh"]
