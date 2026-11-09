@@ -1,0 +1,175 @@
+dashboard_title: Рынок ставок
+description: null
+css: ''
+slug: market-rates
+published: true
+uuid: 0f8d1970-0904-41b6-b048-023e8386f34f
+version: 1.0.0
+position:
+  DASHBOARD_VERSION_KEY: v2
+  ROOT_ID: {id: ROOT_ID, type: ROOT, children: [TABS-main]}
+  GRID_ID: {id: GRID_ID, type: GRID, children: [], parents: [ROOT_ID]}
+  HEADER_ID: {id: HEADER_ID, type: HEADER, meta: {text: Рынок ставок}}
+  TABS-main: {id: TABS-main, type: TABS, children: [TAB-routes, TAB-card, TAB-ml], meta: {}, parents: [ROOT_ID]}
+
+  TAB-routes: {id: TAB-routes, type: TAB, children: [ROW-routes-1, ROW-routes-2], meta: {text: Направления}, parents: [ROOT_ID, TABS-main]}
+  ROW-routes-1:
+    id: ROW-routes-1
+    type: ROW
+    children: [CHART-routes]
+    meta: {background: BACKGROUND_TRANSPARENT}
+    parents: [ROOT_ID, TABS-main, TAB-routes]
+  CHART-routes:
+    id: CHART-routes
+    type: CHART
+    children: []
+    meta: {chartId: 1, uuid: f75200ed-4973-45c2-87eb-34903e635b2e, sliceName: Направления, width: 12, height: 90}
+    parents: [ROOT_ID, TABS-main, TAB-routes, ROW-routes-1]
+  ROW-routes-2:
+    id: ROW-routes-2
+    type: ROW
+    children: [CHART-reliability]
+    meta: {background: BACKGROUND_TRANSPARENT}
+    parents: [ROOT_ID, TABS-main, TAB-routes]
+  CHART-reliability:
+    id: CHART-reliability
+    type: CHART
+    children: []
+    meta: {chartId: 2, uuid: e84c2608-ef44-49e1-ac38-5de7a88ec1cb, sliceName: Надёжность ячеек, width: 5, height: 35}
+    parents: [ROOT_ID, TABS-main, TAB-routes, ROW-routes-2]
+
+  TAB-card: {id: TAB-card, type: TAB, children: [ROW-card-1, ROW-card-2], meta: {text: Карточка маршрута}, parents: [ROOT_ID, TABS-main]}
+  ROW-card-1:
+    id: ROW-card-1
+    type: ROW
+    children: [CHART-corridor]
+    meta: {background: BACKGROUND_TRANSPARENT}
+    parents: [ROOT_ID, TABS-main, TAB-card]
+  CHART-corridor:
+    id: CHART-corridor
+    type: CHART
+    children: []
+    meta: {chartId: 3, uuid: 79decc55-e813-4264-8a5d-1214da25ea62, sliceName: "Коридор ставок, руб./рейс", width: 12, height: 55}
+    parents: [ROOT_ID, TABS-main, TAB-card, ROW-card-1]
+  ROW-card-2:
+    id: ROW-card-2
+    type: ROW
+    children: [CHART-trips]
+    meta: {background: BACKGROUND_TRANSPARENT}
+    parents: [ROOT_ID, TABS-main, TAB-card]
+  CHART-trips:
+    id: CHART-trips
+    type: CHART
+    children: []
+    meta: {chartId: 4, uuid: 9911ff0e-42ae-4cd0-8862-e008a858f35d, sliceName: Сделки и перевозчики, width: 12, height: 40}
+    parents: [ROOT_ID, TABS-main, TAB-card, ROW-card-2]
+
+  TAB-ml: {id: TAB-ml, type: TAB, children: [ROW-ml-1, ROW-ml-2], meta: {text: Факт и прогноз}, parents: [ROOT_ID, TABS-main]}
+  ROW-ml-1:
+    id: ROW-ml-1
+    type: ROW
+    children: [CHART-forecast]
+    meta: {background: BACKGROUND_TRANSPARENT}
+    parents: [ROOT_ID, TABS-main, TAB-ml]
+  CHART-forecast:
+    id: CHART-forecast
+    type: CHART
+    children: []
+    meta: {chartId: 5, uuid: d532300e-9aa2-4be9-a5b7-a42bb2ba5ef4, sliceName: Факт и прогноз CatBoost по дням, width: 12, height: 55}
+    parents: [ROOT_ID, TABS-main, TAB-ml, ROW-ml-1]
+  ROW-ml-2:
+    id: ROW-ml-2
+    type: ROW
+    children: [CHART-quality]
+    meta: {background: BACKGROUND_TRANSPARENT}
+    parents: [ROOT_ID, TABS-main, TAB-ml]
+  CHART-quality:
+    id: CHART-quality
+    type: CHART
+    children: []
+    meta: {chartId: 6, uuid: 3b5a3b36-9de1-4af9-a1a6-f13c5a4f8e7b, sliceName: Качество моделей на test, width: 7, height: 25}
+    parents: [ROOT_ID, TABS-main, TAB-ml, ROW-ml-2]
+metadata:
+  color_scheme: supersetColors
+  refresh_frequency: 0
+  expanded_slices: {}
+  label_colors: {}
+  shared_label_colors: {}
+  timed_refresh_immune_slices: []
+  default_filters: '{}'
+  cross_filters_enabled: false
+  chart_configuration: {}
+  native_filter_configuration:
+  - &filter
+    id: NATIVE_FILTER-month
+    name: Месяц
+    type: NATIVE_FILTER
+    filterType: filter_select
+    description: ''
+    targets:
+    - datasetUuid: e8a15fd4-54fe-4954-a931-8b93ee1abdd3
+      column: {name: month_label}
+    controlValues: {enableEmptyFilter: false, defaultToFirstItem: false, multiSelect: false, searchAllOptions: false, inverseSelection: false}
+    defaultDataMask:
+      extraFormData:
+        filters: [{col: month_label, op: IN, val: ['2026-10']}]
+      filterState: {value: ['2026-10']}
+      ownState: {}
+    cascadeParentIds: []
+    scope: {rootPath: [TAB-routes], excluded: []}
+  - <<: *filter
+    id: NATIVE_FILTER-reliability
+    name: Надёжность
+    targets:
+    - datasetUuid: e8a15fd4-54fe-4954-a931-8b93ee1abdd3
+      column: {name: reliability_level}
+    controlValues: {enableEmptyFilter: false, defaultToFirstItem: false, multiSelect: true, searchAllOptions: false, inverseSelection: false}
+    defaultDataMask: {extraFormData: {}, filterState: {}, ownState: {}}
+  - <<: *filter
+    id: NATIVE_FILTER-loading-city
+    name: Откуда
+    targets:
+    - datasetUuid: e8a15fd4-54fe-4954-a931-8b93ee1abdd3
+      column: {name: loading_city}
+    defaultDataMask:
+      extraFormData:
+        filters: [{col: loading_city, op: IN, val: [Москва]}]
+      filterState: {value: [Москва]}
+      ownState: {}
+    scope: {rootPath: [TAB-card], excluded: []}
+  - <<: *filter
+    id: NATIVE_FILTER-unloading-city
+    name: Куда
+    targets:
+    - datasetUuid: e8a15fd4-54fe-4954-a931-8b93ee1abdd3
+      column: {name: unloading_city}
+    defaultDataMask:
+      extraFormData:
+        filters: [{col: unloading_city, op: IN, val: [Ростов-на-Дону]}]
+      filterState: {value: [Ростов-на-Дону]}
+      ownState: {}
+    scope: {rootPath: [TAB-card], excluded: []}
+  - <<: *filter
+    id: NATIVE_FILTER-body-group
+    name: Кузов
+    targets:
+    - datasetUuid: e8a15fd4-54fe-4954-a931-8b93ee1abdd3
+      column: {name: body_group}
+    defaultDataMask:
+      extraFormData:
+        filters: [{col: body_group, op: IN, val: [Тент]}]
+      filterState: {value: [Тент]}
+      ownState: {}
+    scope: {rootPath: [TAB-card], excluded: []}
+  - <<: *filter
+    id: NATIVE_FILTER-weight
+    name: Вес
+    targets:
+    - datasetUuid: e8a15fd4-54fe-4954-a931-8b93ee1abdd3
+      column: {name: weight_category}
+    defaultDataMask:
+      extraFormData:
+        filters: [{col: weight_category, op: IN, val: [FTL]}]
+      filterState: {value: [FTL]}
+      ownState: {}
+    scope: {rootPath: [TAB-card], excluded: []}

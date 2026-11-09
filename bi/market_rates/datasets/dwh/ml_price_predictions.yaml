@@ -1,0 +1,34 @@
+table_name: ml_price_predictions
+schema: mart
+main_dttm_col: loading_date
+description: Прогнозы ставки за test-период и плановые заявки после даты снимка
+sql: null
+params: null
+template_params: null
+filter_select_enabled: true
+fetch_values_predicate: null
+extra: null
+cache_timeout: null
+offset: 0
+normalize_columns: false
+always_filter_main_dttm: false
+uuid: 3591e297-8781-4b26-bb63-d79a119e4cb4
+database_uuid: 013998e1-8804-4a84-9356-93f307146564
+version: 1.0.0
+metrics:
+- metric_name: count
+  verbose_name: Прогнозов
+  metric_type: count
+  expression: COUNT(*)
+columns:
+- {column_name: price_id, type: BIGINT, groupby: true, filterable: true}
+- {column_name: loading_date, verbose_name: Дата погрузки, type: DATE, is_dttm: true, groupby: true, filterable: true}
+- {column_name: loading_city_gcid, type: INTEGER, groupby: true, filterable: true}
+- {column_name: unloading_city_gcid, type: INTEGER, groupby: true, filterable: true}
+- {column_name: body_group, verbose_name: Кузов, type: TEXT, groupby: true, filterable: true}
+- {column_name: actual_price_rub, verbose_name: "Факт, руб.", type: "NUMERIC(14, 2)", groupby: false, filterable: true}
+- {column_name: predicted_price_rub, verbose_name: "Прогноз, руб.", type: "NUMERIC(14, 2)", groupby: false, filterable: true}
+- {column_name: abs_error_rub, verbose_name: "Ошибка, руб.", type: "NUMERIC(14, 2)", groupby: false, filterable: true}
+- {column_name: ape_pct, verbose_name: "Ошибка, %", type: "NUMERIC(10, 4)", groupby: false, filterable: true}
+- {column_name: model_name, verbose_name: Модель, type: TEXT, groupby: true, filterable: true}
+- {column_name: scored_at, type: TIMESTAMP WITH TIME ZONE, groupby: false, filterable: true}

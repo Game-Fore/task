@@ -1,0 +1,49 @@
+slice_name: Факт и прогноз CatBoost по дням
+description: Средняя фактическая и прогнозная ставка; после 26.10.2026 факта ещё нет
+viz_type: echarts_timeseries_line
+params:
+  viz_type: echarts_timeseries_line
+  x_axis: loading_date
+  time_grain_sqla: P1D
+  x_axis_sort_asc: true
+  metrics:
+  - expressionType: SQL
+    sqlExpression: AVG(actual_price_rub)
+    label: Факт
+    hasCustomLabel: true
+    optionName: metric_actual
+  - expressionType: SQL
+    sqlExpression: AVG(predicted_price_rub)
+    label: Прогноз
+    hasCustomLabel: true
+    optionName: metric_predicted
+  groupby: []
+  adhoc_filters:
+  - clause: WHERE
+    expressionType: SIMPLE
+    subject: loading_date
+    operator: TEMPORAL_RANGE
+    comparator: No filter
+  - clause: WHERE
+    expressionType: SIMPLE
+    subject: model_name
+    operator: ==
+    comparator: catboost_v1
+  row_limit: 10000
+  truncate_metric: true
+  comparison_type: values
+  annotation_layers: []
+  seriesType: line
+  show_legend: true
+  legendType: scroll
+  legendOrientation: top
+  rich_tooltip: true
+  x_axis_time_format: smart_date
+  tooltipTimeFormat: smart_date
+  y_axis_format: SMART_NUMBER
+  color_scheme: supersetColors
+query_context: null
+cache_timeout: null
+uuid: d532300e-9aa2-4be9-a5b7-a42bb2ba5ef4
+version: 1.0.0
+dataset_uuid: 3591e297-8781-4b26-bb63-d79a119e4cb4

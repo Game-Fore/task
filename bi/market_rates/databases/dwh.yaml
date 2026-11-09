@@ -1,0 +1,13 @@
+database_name: dwh
+sqlalchemy_uri: postgresql+psycopg2://bi_reader:{{BI_READER_PASSWORD}}@postgres:5432/{{DWH_DB}}
+cache_timeout: null
+expose_in_sqllab: true
+allow_run_async: false
+allow_ctas: false
+allow_cvas: false
+allow_dml: false
+allow_csv_upload: false
+extra:
+  allows_virtual_table_explore: true
+uuid: 013998e1-8804-4a84-9356-93f307146564
+version: 1.0.0

@@ -29,6 +29,16 @@ x-airflow: &airflow
   volumes:
     - airflow_ml_models:/opt/airflow/ml_models
 
+x-superset: &superset
+  image: smart-logistics-superset
+  build:
+    context: .
+    dockerfile: docker/superset.Dockerfile
+  profiles: ["superset"]
+  environment: &superset-env
+    SUPERSET_SECRET_KEY: ${SUPERSET_SECRET_KEY:-local-dev-superset-secret}
+    SUPERSET_METADATA_URI: postgresql+psycopg2://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/superset
+
 services:
   postgres:
     image: postgres:17.6
@@ -92,6 +102,31 @@ services:
       airflow-init:
         condition: service_completed_successfully
     command: scheduler
+
+  superset-init:
+    <<: *superset
+    depends_on:
+      pipeline:
+        condition: service_completed_successfully  # нужны схема mart и данные
+    environment:
+      <<: *superset-env
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: ${POSTGRES_USER:-postgres}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      DWH_DB: ${DWH_DB:-dwh}
+      BI_READER_PASSWORD: ${BI_READER_PASSWORD:-bi_reader}
+      SUPERSET_ADMIN_USER: ${SUPERSET_ADMIN_USER:-admin}
+      SUPERSET_ADMIN_PASSWORD: ${SUPERSET_ADMIN_PASSWORD:-admin}
+    command: ["bash", "/app/superset_init.sh"]
+
+  superset:
+    <<: *superset
+    depends_on:
+      superset-init:
+        condition: service_completed_successfully
+    ports:
+      - "${SUPERSET_HOST_PORT:-8088}:8088"
 
 volumes:
   pgdata:

@@ -1,0 +1,44 @@
+slice_name: Сделки и перевозчики
+description: Доказательная база маршрута по месяцам
+viz_type: echarts_timeseries_bar
+params:
+  viz_type: echarts_timeseries_bar
+  x_axis: month
+  time_grain_sqla: P1M
+  x_axis_sort_asc: true
+  metrics:
+  - expressionType: SQL
+    sqlExpression: SUM(trips_count)
+    label: Сделок
+    hasCustomLabel: true
+    optionName: metric_trips
+  - expressionType: SQL
+    sqlExpression: SUM(carriers_count)
+    label: Перевозчиков
+    hasCustomLabel: true
+    optionName: metric_carriers
+  groupby: []
+  adhoc_filters:
+  - clause: WHERE
+    expressionType: SIMPLE
+    subject: month
+    operator: TEMPORAL_RANGE
+    comparator: No filter
+  row_limit: 10000
+  truncate_metric: true
+  comparison_type: values
+  annotation_layers: []
+  orientation: vertical
+  show_legend: true
+  legendType: scroll
+  legendOrientation: top
+  rich_tooltip: true
+  x_axis_time_format: smart_date
+  tooltipTimeFormat: smart_date
+  y_axis_format: SMART_NUMBER
+  color_scheme: supersetColors
+query_context: null
+cache_timeout: null
+uuid: 9911ff0e-42ae-4cd0-8862-e008a858f35d
+version: 1.0.0
+dataset_uuid: e8a15fd4-54fe-4954-a931-8b93ee1abdd3

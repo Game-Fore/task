@@ -1,0 +1,34 @@
+slice_name: Направления
+description: Коридор ставок и доказательная база по направлениям за выбранный месяц
+viz_type: table
+params:
+  viz_type: table
+  query_mode: raw
+  all_columns:
+  - month_label
+  - loading_city
+  - unloading_city
+  - body_group
+  - weight_category
+  - p25_trip
+  - median_trip
+  - p75_trip
+  - median_km
+  - trips_count
+  - carriers_count
+  - mom_pct
+  - yoy_pct
+  - reliability_level
+  order_by_cols:
+  - '["trips_count", false]'
+  adhoc_filters: []
+  row_limit: 1000
+  server_page_length: 20
+  include_search: true
+  show_cell_bars: false
+  table_timestamp_format: smart_date
+query_context: null
+cache_timeout: null
+uuid: f75200ed-4973-45c2-87eb-34903e635b2e
+version: 1.0.0
+dataset_uuid: e8a15fd4-54fe-4954-a931-8b93ee1abdd3

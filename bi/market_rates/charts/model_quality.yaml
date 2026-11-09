@@ -1,0 +1,40 @@
+slice_name: Качество моделей на test
+description: Ошибка по сделкам test-периода, где факт уже известен
+viz_type: table
+params:
+  viz_type: table
+  query_mode: aggregate
+  groupby:
+  - model_name
+  metrics:
+  - expressionType: SQL
+    sqlExpression: COUNT(actual_price_rub)
+    label: Сделок с фактом
+    hasCustomLabel: true
+    optionName: metric_test_rows
+  - expressionType: SQL
+    sqlExpression: ROUND(AVG(ape_pct), 2)
+    label: MAPE, %
+    hasCustomLabel: true
+    optionName: metric_mape
+  - expressionType: SQL
+    sqlExpression: ROUND(AVG(abs_error_rub), 0)
+    label: MAE, руб.
+    hasCustomLabel: true
+    optionName: metric_mae
+  - expressionType: SQL
+    sqlExpression: COUNT(*) - COUNT(actual_price_rub)
+    label: Прогнозов на будущее
+    hasCustomLabel: true
+    optionName: metric_future
+  percent_metrics: []
+  order_desc: false
+  adhoc_filters: []
+  row_limit: 10
+  show_cell_bars: false
+  table_timestamp_format: smart_date
+query_context: null
+cache_timeout: null
+uuid: 3b5a3b36-9de1-4af9-a1a6-f13c5a4f8e7b
+version: 1.0.0
+dataset_uuid: 3591e297-8781-4b26-bb63-d79a119e4cb4

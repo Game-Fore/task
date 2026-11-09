@@ -1,0 +1,49 @@
+table_name: mart_route_card
+schema: mart
+main_dttm_col: month
+description: Карточка маршрута и коридор ставок, зерно — месяц × маршрут × кузов × вес
+sql: null
+params: null
+template_params: null
+filter_select_enabled: true
+fetch_values_predicate: null
+extra: null
+cache_timeout: null
+offset: 0
+normalize_columns: false
+always_filter_main_dttm: false
+uuid: e8a15fd4-54fe-4954-a931-8b93ee1abdd3
+database_uuid: 013998e1-8804-4a84-9356-93f307146564
+version: 1.0.0
+metrics:
+- metric_name: count
+  verbose_name: Ячеек
+  metric_type: count
+  expression: COUNT(*)
+columns:
+- {column_name: month, verbose_name: Месяц (дата), type: DATE, is_dttm: true, groupby: true, filterable: true}
+- {column_name: month_label, verbose_name: Месяц, type: VARCHAR, expression: "to_char(month, 'YYYY-MM')", groupby: true, filterable: true}
+- {column_name: loading_city_gcid, type: INTEGER, groupby: true, filterable: true}
+- {column_name: loading_city, verbose_name: Откуда, type: TEXT, groupby: true, filterable: true}
+- {column_name: loading_region, verbose_name: Регион отправления, type: TEXT, groupby: true, filterable: true}
+- {column_name: unloading_city_gcid, type: INTEGER, groupby: true, filterable: true}
+- {column_name: unloading_city, verbose_name: Куда, type: TEXT, groupby: true, filterable: true}
+- {column_name: unloading_region, verbose_name: Регион назначения, type: TEXT, groupby: true, filterable: true}
+- {column_name: body_group, verbose_name: Кузов, type: TEXT, groupby: true, filterable: true}
+- {column_name: weight_category, verbose_name: Вес, type: VARCHAR(4), groupby: true, filterable: true}
+- {column_name: p25_trip, verbose_name: P25 руб./рейс, type: "NUMERIC(14, 2)", groupby: false, filterable: true}
+- {column_name: median_trip, verbose_name: Медиана руб./рейс, type: "NUMERIC(14, 2)", groupby: false, filterable: true}
+- {column_name: p75_trip, verbose_name: P75 руб./рейс, type: "NUMERIC(14, 2)", groupby: false, filterable: true}
+- {column_name: avg_trip, verbose_name: Среднее руб./рейс, type: "NUMERIC(14, 2)", groupby: false, filterable: true}
+- {column_name: p25_km, verbose_name: P25 руб./км, type: "NUMERIC(12, 2)", groupby: false, filterable: true}
+- {column_name: median_km, verbose_name: Медиана руб./км, type: "NUMERIC(12, 2)", groupby: false, filterable: true}
+- {column_name: p75_km, verbose_name: P75 руб./км, type: "NUMERIC(12, 2)", groupby: false, filterable: true}
+- {column_name: trips_count, verbose_name: Сделок, type: INTEGER, groupby: false, filterable: true}
+- {column_name: carriers_count, verbose_name: Перевозчиков, type: INTEGER, groupby: false, filterable: true}
+- {column_name: cv_rate, verbose_name: CV, type: "NUMERIC(10, 4)", groupby: false, filterable: true}
+- {column_name: mom_pct, verbose_name: "MoM, %", type: NUMERIC, groupby: false, filterable: true}
+- {column_name: yoy_pct, verbose_name: "YoY, %", type: NUMERIC, groupby: false, filterable: true}
+- {column_name: reliability_level, verbose_name: Надёжность, type: TEXT, groupby: true, filterable: true}
+- {column_name: last_price_date, verbose_name: Последняя сделка, type: DATE, groupby: false, filterable: true}
+- {column_name: as_of, type: DATE, groupby: false, filterable: true}
+- {column_name: refreshed_at, type: TIMESTAMP WITH TIME ZONE, groupby: false, filterable: true}

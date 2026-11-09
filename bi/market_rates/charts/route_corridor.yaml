@@ -1,0 +1,51 @@
+slice_name: Коридор ставок, руб./рейс
+description: P25, медиана и P75 по месяцам для маршрута из фильтров
+viz_type: echarts_timeseries_line
+params:
+  viz_type: echarts_timeseries_line
+  x_axis: month
+  time_grain_sqla: P1M
+  x_axis_sort_asc: true
+  metrics:
+  - expressionType: SQL
+    sqlExpression: AVG(p25_trip)
+    label: P25
+    hasCustomLabel: true
+    optionName: metric_p25
+  - expressionType: SQL
+    sqlExpression: AVG(median_trip)
+    label: Медиана
+    hasCustomLabel: true
+    optionName: metric_median
+  - expressionType: SQL
+    sqlExpression: AVG(p75_trip)
+    label: P75
+    hasCustomLabel: true
+    optionName: metric_p75
+  groupby: []
+  adhoc_filters:
+  - clause: WHERE
+    expressionType: SIMPLE
+    subject: month
+    operator: TEMPORAL_RANGE
+    comparator: No filter
+  row_limit: 10000
+  truncate_metric: true
+  comparison_type: values
+  annotation_layers: []
+  seriesType: line
+  markerEnabled: true
+  markerSize: 4
+  show_legend: true
+  legendType: scroll
+  legendOrientation: top
+  rich_tooltip: true
+  x_axis_time_format: smart_date
+  tooltipTimeFormat: smart_date
+  y_axis_format: SMART_NUMBER
+  color_scheme: supersetColors
+query_context: null
+cache_timeout: null
+uuid: 79decc55-e813-4264-8a5d-1214da25ea62
+version: 1.0.0
+dataset_uuid: e8a15fd4-54fe-4954-a931-8b93ee1abdd3
