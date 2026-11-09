@@ -36,8 +36,8 @@ docker compose run --rm pipeline pytest
   как в настоящую внешнюю OLTP-базу, а отдельный контейнер ради этого не нужен.
 - **Python 3.12 + psycopg 3** — перенос данных через `COPY`, трансформации написаны на SQL и выполняются
   внутри базы. Так 300 тыс. строк не гоняются через pandas туда и обратно.
-- **Оркестратор** — пока обычный shell-скрипт `docker/run_pipeline.sh` с последовательными шагами. Шаги — это
-  отдельные CLI-команды с параметрами окна, их без изменений можно вызвать из Airflow.
+- **Оркестратор** — в обязательной части shell-скрипт `docker/run_pipeline.sh`, чтобы `docker-compose up`
+  оставался лёгким. В бонусе те же шаги запускает **Airflow 2.10** (профиль `airflow`, см. ниже).
 - **CatBoost** — основная модель: сам работает с категориями (регионы, кузов) и хорошо ловит нелинейность
   «расстояние × вес × кузов». **Ridge** из scikit-learn — линейный бейзлайн для сравнения.
 
@@ -151,6 +151,38 @@ SELECT model_name, count(*) AS test_rows,
 FROM t GROUP BY model_name ORDER BY model_name;
 ```
 
+## Airflow (бонус)
+
+```bash
+docker compose --profile airflow up -d --build
+```
+
+Интерфейс — http://localhost:8080, логин и пароль `admin` / `admin`. DAG `deals_pipeline` (`dags/deals_pipeline.py`)
+вызывает те же команды, что и `run_pipeline.sh`: `migrate → load → mart → ml_train → ml_score`.
+
+- Расписание месячное. Окно загрузки — месяц интервала: у запуска за сентябрь это 01.09–30.09.
+- При ручном запуске окно можно задать в параметрах `start_date` / `end_date`. С окном 2023-01-01 … 2027-12-31
+  результат совпадает с сервисом `pipeline` побитово: проверил контрольными суммами `core`, витрины и прогнозов.
+- `catchup` выключен, историю догружают явно. Месяцы, за которые запусков ещё не было, — через backfill,
+  уже пройденные — через clear, их перезапустит сам планировщик. Повтор месяцев данные не меняет.
+
+```bash
+docker compose exec airflow-scheduler airflow dags backfill deals_pipeline -s 2026-07-01 -e 2026-08-01 -y
+```
+
+```bash
+docker compose exec airflow-scheduler airflow tasks clear deals_pipeline -s 2026-09-01 -e 2026-10-01 -y
+```
+
+`backfill --reset-dagruns` для уже существующих запусков не подходит, пока DAG не на паузе: планировщик успевает
+сам подхватить очищенный запуск, и backfill отказывается в него вмешиваться. После старта DAG появляется
+в интерфейсе не сразу, а когда планировщик впервые прочитает файл, обычно в пределах минуты.
+
+Код пайплайна стоит в образе Airflow в отдельном venv, поэтому версии pandas, CatBoost и остальных библиотек
+те же, что в сервисе `pipeline`, и не конфликтуют с зависимостями самого Airflow. Метаданные Airflow хранятся
+в отдельной базе `airflow` на том же PostgreSQL, её создаёт `airflow-init`. Новый DAG появляется на паузе,
+чтобы не стартовать одновременно с сервисом `pipeline` при первом запуске.
+
 ## Решения и допущения
 
 **Загрузка**
@@ -205,7 +237,8 @@ FROM t GROUP BY model_name ORDER BY model_name;
 ## Структура
 
 ```
-docker/        Dockerfile, init-скрипт PostgreSQL, run_pipeline.sh
+docker/        Dockerfile пайплайна и Airflow, init-скрипты, run_pipeline.sh
+dags/          DAG Airflow
 sql/source/    схема и генератор источника из задания, без изменений
 sql/dwh/       DDL хранилища
 sql/etl/       SQL загрузки raw → core

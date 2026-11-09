@@ -1,5 +1,34 @@
 name: smart-logistics
 
+x-pipeline-env: &pipeline-env
+  DB_HOST: postgres
+  DB_PORT: 5432
+  DB_USER: ${POSTGRES_USER:-postgres}
+  DB_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+  SOURCE_DB: ${SOURCE_DB:-deals_bigdata}
+  DWH_DB: ${DWH_DB:-dwh}
+  ETL_START_DATE: ${ETL_START_DATE:-2023-01-01}
+  ETL_END_DATE: ${ETL_END_DATE:-2027-12-31}
+  AS_OF: ${AS_OF:-2026-10-26}
+  LOG_LEVEL: ${LOG_LEVEL:-INFO}
+
+x-airflow: &airflow
+  image: smart-logistics-airflow
+  build:
+    context: .
+    dockerfile: docker/airflow.Dockerfile
+  profiles: ["airflow"]
+  environment: &airflow-env
+    <<: *pipeline-env
+    ML_MODELS_DIR: /opt/airflow/ml_models
+    AIRFLOW__CORE__EXECUTOR: LocalExecutor
+    AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/airflow
+    AIRFLOW__WEBSERVER__SECRET_KEY: ${AIRFLOW_SECRET_KEY:-local-dev-secret}
+    AIRFLOW__WEBSERVER__WORKERS: 2
+  volumes:
+    - airflow_ml_models:/opt/airflow/ml_models
+
 services:
   postgres:
     image: postgres:17.6
@@ -31,20 +60,40 @@ services:
       postgres:
         condition: service_healthy
     environment:
-      DB_HOST: postgres
-      DB_PORT: 5432
-      DB_USER: ${POSTGRES_USER:-postgres}
-      DB_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-      SOURCE_DB: ${SOURCE_DB:-deals_bigdata}
-      DWH_DB: ${DWH_DB:-dwh}
-      ETL_START_DATE: ${ETL_START_DATE:-2023-01-01}
-      ETL_END_DATE: ${ETL_END_DATE:-2027-12-31}
-      AS_OF: ${AS_OF:-2026-10-26}
+      <<: *pipeline-env
       ML_MODELS_DIR: /app/models
-      LOG_LEVEL: ${LOG_LEVEL:-INFO}
     volumes:
       - ml_models:/app/models
+
+  airflow-init:
+    <<: *airflow
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      <<: *airflow-env
+      CONNECTION_CHECK_MAX_COUNT: "0"  # база airflow ещё может не существовать
+      AIRFLOW_ADMIN_USER: ${AIRFLOW_ADMIN_USER:-admin}
+      AIRFLOW_ADMIN_PASSWORD: ${AIRFLOW_ADMIN_PASSWORD:-admin}
+    command: ["bash", "/opt/airflow/airflow_init.sh"]
+
+  airflow-webserver:
+    <<: *airflow
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+    command: webserver
+    ports:
+      - "${AIRFLOW_HOST_PORT:-8080}:8080"
+
+  airflow-scheduler:
+    <<: *airflow
+    depends_on:
+      airflow-init:
+        condition: service_completed_successfully
+    command: scheduler
 
 volumes:
   pgdata:
   ml_models:
+  airflow_ml_models:
