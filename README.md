@@ -13,6 +13,7 @@ docker-compose up --build
 Потом сервис `pipeline` по очереди выполняет `etl migrate`, `etl load`, `etl mart`, `ml train`, `ml score` и
 завершается. С нуля всё занимает около полутора минут. Каждый шаг идемпотентен, повторный `docker-compose up`
 ничего не задваивает. Настройки лежат в `.env.example`; без `.env` берутся те же значения по умолчанию.
+Если порт 5432 на машине уже занят, задайте другой в `.env`: `POSTGRES_HOST_PORT=5433`.
 
 Перезагрузить период (окно по `loading_date`, границы включительно) и пересчитать витрину с этого месяца:
 
@@ -24,7 +25,8 @@ docker compose run --rm pipeline python -m etl load --start-date 2026-10-01 --en
 docker compose run --rm pipeline python -m etl mart --start-date 2026-10-01
 ```
 
-Тесты (96 штук, 2 из них нужен ClickHouse, без него они пропускаются; поднимают свои временные базы на том же сервере):
+Тесты — 96 штук, они поднимают свои временные базы на том же сервере. Двум из них нужен ClickHouse,
+без него они пропускаются:
 
 ```bash
 docker compose run --rm pipeline pytest
@@ -61,6 +63,9 @@ deals_bigdata ──COPY──► raw ──SQL──► core ──SQL──►
 прогнать проверки качества и разложить строки по `core` и карантину. Если что-то упадёт, останется прошлое
 состояние. Источник читается в `REPEATABLE READ`, чтобы все таблицы пришли из одного снимка.
 
+Логи — JSON по строке на событие: сколько строк прочитано по каждой таблице, сколько и почему ушло в карантин,
+сколько ячеек пересчитано в витрине, какие метрики показала модель.
+
 ### Качество данных
 
 Правила лежат списком в `etl/dq_rules.py`. Строка, нарушившая хоть одно, уходит в
@@ -76,6 +81,8 @@ deals_bigdata ──COPY──► raw ──SQL──► core ──SQL──►
 ### Витрина
 
 Зерно: месяц × город отправления × город назначения × группа кузова × весовая категория.
+Расчёт — `sql/mart/010_route_month_stats.sql`, сделки рынка с фильтрами выборки — представление `core.market_deals`
+в `sql/dwh/020_core.sql`, MoM / YoY / надёжность — представление в `sql/dwh/030_mart.sql`.
 В `mart.route_month_stats` хранятся P25 / медиана / P75 / среднее за рейс, P25 / медиана / P75 за км,
 `trips_count`, `carriers_count`, `cv_rate`. Представление `mart.mart_route_card` добавляет `mom_pct`, `yoy_pct`
 и `reliability_level`.
@@ -302,16 +309,16 @@ docker compose --profile clickhouse run --rm clickhouse-sync pytest
 ## Структура
 
 ```
-docker/        Dockerfile пайплайна, Airflow и Superset, init-скрипты, run_pipeline.sh
-dags/          DAG Airflow
-bi/            дашборд Superset в YAML
-sql/source/    схема и генератор источника из задания, без изменений
-sql/dwh/       DDL хранилища
-sql/etl/       SQL загрузки raw → core
-sql/mart/      SQL витрины
-sql/clickhouse/ DDL и SQL витрины в ClickHouse
-common/        настройки, подключение к БД, JSON-логи
-etl/           python -m etl migrate | load | mart
-ml/            python -m ml train | score
-tests/         pytest
+docker/          Dockerfile пайплайна, Airflow и Superset, init-скрипты, run_pipeline.sh
+dags/            DAG Airflow
+bi/              дашборд Superset в YAML
+sql/source/      схема и генератор источника из задания, без изменений
+sql/dwh/         DDL хранилища
+sql/etl/         SQL загрузки raw → core
+sql/mart/        SQL витрины
+sql/clickhouse/  DDL и SQL витрины в ClickHouse
+common/          настройки, подключение к БД, JSON-логи
+etl/             python -m etl migrate | load | mart | clickhouse
+ml/              python -m ml train | score
+tests/           pytest
 ```
