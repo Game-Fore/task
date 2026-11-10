@@ -24,7 +24,7 @@ docker compose run --rm pipeline python -m etl load --start-date 2026-10-01 --en
 docker compose run --rm pipeline python -m etl mart --start-date 2026-10-01
 ```
 
-Тесты (87 штук, поднимают свои временные базы на том же сервере):
+Тесты (96 штук, 2 из них нужен ClickHouse, без него они пропускаются; поднимают свои временные базы на том же сервере):
 
 ```bash
 docker compose run --rm pipeline pytest
@@ -39,6 +39,8 @@ docker compose run --rm pipeline pytest
 - **Оркестратор** — в обязательной части shell-скрипт `docker/run_pipeline.sh`, чтобы `docker-compose up`
   оставался лёгким. В бонусе те же шаги запускает **Airflow 2.10** (профиль `airflow`, см. ниже).
 - **Superset 4.1** — бонусный дашборд поверх `mart` (профиль `superset`).
+- **ClickHouse 24.8** — бонусная копия витрины, посчитанная средствами ClickHouse и сверенная с PostgreSQL
+  (профиль `clickhouse`).
 - **CatBoost** — основная модель: сам работает с категориями (регионы, кузов) и хорошо ловит нелинейность
   «расстояние × вес × кузов». **Ridge** из scikit-learn — линейный бейзлайн для сравнения.
 
@@ -205,6 +207,47 @@ docker compose --profile superset up -d --build
 обновляет дашборд, а не создаёт копию. Superset читает хранилище под пользователем `bi_reader`, которому
 доступно только чтение схемы `mart`.
 
+## ClickHouse (бонус)
+
+```bash
+docker compose --profile clickhouse up -d --build
+```
+
+Сервис `clickhouse-sync` после основного пайплайна выполняет `python -m etl clickhouse`:
+
+1. читает сделки рынка из представления `core.market_deals` — того же, из которого считается витрина в PostgreSQL;
+2. пачкой пишет их в staging-таблицу и пересчитывает там витрину функциями ClickHouse
+   (`quantileExactInclusive`, `uniqExact`, `stddevSamp`);
+3. подменяет секции месяцев окна через `ALTER TABLE … REPLACE PARTITION … FROM …_stage`;
+4. сверяет `route_card` в ClickHouse с `mart.mart_route_card` в PostgreSQL и падает, если они расходятся.
+
+Таблицы в базе `mart`: `market_deals` (291 020 строк) и `route_month_stats` (203 644 строки) на `MergeTree`,
+секции по месяцам, ключ сортировки совпадает с зерном витрины; поверх — представление `route_card` с MoM, YoY
+и надёжностью. Сверка на полных данных: все 203 644 ячейки совпали, включая MoM, YoY и уровни надёжности,
+ни одна денежная метрика не разошлась даже на копейку. Полная синхронизация занимает около 15 секунд.
+
+```bash
+docker compose exec clickhouse clickhouse-client -u etl --password etl -d mart -q "SELECT month, trips_count, median_trip, mom_pct, reliability_level FROM route_card WHERE loading_city = 'Москва' AND unloading_city = 'Ростов-на-Дону' AND body_group = 'Тент' AND weight_category = 'FTL' ORDER BY month DESC LIMIT 3"
+```
+
+Почему `MergeTree` и замена секций, а не `ReplacingMergeTree`: это та же перезапись окна, что и в PostgreSQL.
+Секция подменяется атомарно, читатели не видят ни дублей, ни пустоты, а месяц, из которого ушли все сделки,
+становится пустым. `ReplacingMergeTree` схлопывает повторы только при фоновых слияниях, до них нужен `FINAL`,
+а строки, удалённые в источнике, без отдельного флага не исчезают. Он лучше подходит для потока изменений (CDC).
+
+Чтобы совпали копейки, пришлось повторить округление PostgreSQL. `toDecimal128` от `Float64` в ClickHouse
+отбрасывает хвост (`96964.89499…` превращается в `96964.894999`), и половина уходила вниз. Поэтому значение
+сначала округляется во float, затем через строку переводится в `Decimal` и только потом округляется по
+правилам `Decimal`, половина от нуля, как у `numeric`. Без этого копейкой расходились 4 996 ячеек, в основном
+медианы двух сделок. Деление двух `Decimal` в ClickHouse сохраняет масштаб делимого, поэтому MoM и YoY
+считаются с масштабом 10. В сверке остаётся допуск в копейку на редкие случаи float, по факту он не понадобился.
+
+Тесты ClickHouse пропускаются, если он не поднят. Запустить все тесты вместе с ними:
+
+```bash
+docker compose --profile clickhouse run --rm clickhouse-sync pytest
+```
+
 ## Решения и допущения
 
 **Загрузка**
@@ -266,6 +309,7 @@ sql/source/    схема и генератор источника из зада
 sql/dwh/       DDL хранилища
 sql/etl/       SQL загрузки raw → core
 sql/mart/      SQL витрины
+sql/clickhouse/ DDL и SQL витрины в ClickHouse
 common/        настройки, подключение к БД, JSON-логи
 etl/           python -m etl migrate | load | mart
 ml/            python -m ml train | score

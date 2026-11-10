@@ -9,30 +9,6 @@ INSERT INTO mart.route_month_stats (
     p25_trip, median_trip, p75_trip, avg_trip, p25_km, median_km, p75_km,
     trips_count, carriers_count, cv_rate, last_price_date, as_of
 )
-WITH market_deals AS (
-    -- одна строка на сделку × месяц × группу кузова
-    SELECT p.price_id,
-           d.month,
-           g.body_group,
-           p.loading_city_gcid,
-           p.unloading_city_gcid,
-           p.weight_category,
-           p.organization_id,
-           p.price_type,
-           p.price_rub,
-           p.price_rub / p.distance AS price_km,
-           max(d.price_date)        AS last_price_date
-    FROM core.prices p
-    JOIN core.price_dates d       ON d.price_id = p.price_id
-    JOIN core.price_body_groups g ON g.price_id = p.price_id
-    WHERE p.price_type IN (1, 2, 3, 4, 5, 9)
-      AND NOT p.complex
-      AND NOT p.outlier_mark
-      AND p.price > 0 AND p.distance > 0
-      AND d.price_date <= core.etl_as_of()
-      AND d.month >= date_trunc('month', core.etl_window_start())
-    GROUP BY p.price_id, d.month, g.body_group
-)
 SELECT m.month,
        lc.gc_id,
        uc.gc_id,
@@ -56,7 +32,8 @@ SELECT m.month,
        END,
        max(m.last_price_date),
        core.etl_as_of()
-FROM market_deals m
+FROM core.market_deals m
 JOIN core.dim_city lc ON lc.gc_id = m.loading_city_gcid
 JOIN core.dim_city uc ON uc.gc_id = m.unloading_city_gcid
+WHERE m.month >= date_trunc('month', core.etl_window_start())
 GROUP BY m.month, lc.gc_id, uc.gc_id, m.body_group, m.weight_category;

@@ -128,7 +128,44 @@ services:
     ports:
       - "${SUPERSET_HOST_PORT:-8088}:8088"
 
+  clickhouse:
+    image: clickhouse/clickhouse-server:24.8
+    profiles: ["clickhouse"]
+    environment:
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-etl}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-etl}
+    ports:
+      - "${CLICKHOUSE_HOST_PORT:-8123}:8123"
+    volumes:
+      - chdata:/var/lib/clickhouse
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8123/ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  clickhouse-sync:
+    build:
+      context: .
+      dockerfile: docker/pipeline.Dockerfile
+    profiles: ["clickhouse"]
+    depends_on:
+      pipeline:
+        condition: service_completed_successfully
+      clickhouse:
+        condition: service_healthy
+    environment:
+      <<: *pipeline-env
+      ML_MODELS_DIR: /app/models
+      CLICKHOUSE_HOST: clickhouse
+      CLICKHOUSE_PORT: 8123
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER:-etl}
+      CLICKHOUSE_PASSWORD: ${CLICKHOUSE_PASSWORD:-etl}
+      CLICKHOUSE_DATABASE: mart
+    command: ["python", "-m", "etl", "clickhouse"]
+
 volumes:
   pgdata:
   ml_models:
   airflow_ml_models:
+  chdata:

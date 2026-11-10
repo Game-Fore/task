@@ -37,6 +37,25 @@ class Settings:
     log_level: str
 
 
+@dataclass(frozen=True)
+class ClickHouseConfig:
+    host: str
+    port: int
+    user: str
+    password: str
+    database: str
+
+
+def load_clickhouse_config() -> ClickHouseConfig:
+    return ClickHouseConfig(
+        host=_require("CLICKHOUSE_HOST"),
+        port=int(_require("CLICKHOUSE_PORT")),
+        user=_require("CLICKHOUSE_USER"),
+        password=_require("CLICKHOUSE_PASSWORD"),
+        database=_require("CLICKHOUSE_DATABASE"),
+    )
+
+
 def load_settings() -> Settings:
     return Settings(
         db=DbConfig(

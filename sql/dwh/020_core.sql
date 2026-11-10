@@ -113,3 +113,27 @@ CREATE TABLE IF NOT EXISTS core.dq_quarantine_prices (
     quarantined_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS core_dq_quarantine_loading_date_idx ON core.dq_quarantine_prices (loading_date);
+
+-- сделки рынка: одна строка на сделку × месяц × группу кузова, только scope витрины.
+-- Из него считают витрину и PostgreSQL, и ClickHouse; as_of задаётся через set_config
+CREATE OR REPLACE VIEW core.market_deals AS
+SELECT p.price_id,
+       d.month,
+       g.body_group,
+       p.loading_city_gcid,
+       p.unloading_city_gcid,
+       p.weight_category,
+       p.organization_id,
+       p.price_type,
+       p.price_rub,
+       p.price_rub / p.distance AS price_km,
+       max(d.price_date)        AS last_price_date
+FROM core.prices p
+JOIN core.price_dates d       ON d.price_id = p.price_id
+JOIN core.price_body_groups g ON g.price_id = p.price_id
+WHERE p.price_type IN (1, 2, 3, 4, 5, 9)
+  AND NOT p.complex
+  AND NOT p.outlier_mark
+  AND p.price > 0 AND p.distance > 0
+  AND d.price_date <= core.etl_as_of()
+GROUP BY p.price_id, d.month, g.body_group;
